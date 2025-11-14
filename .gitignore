@@ -1,0 +1,21 @@
+# Node modules
+backend/node_modules/
+frontend/node_modules/
+
+# environment variables
+backend/.env
+frontend/.env
+
+# Logs
+*.log
+
+# Uploads
+backend/uploads/
+
+# Vite cache
+frontend/dist/
+frontend/.vite/
+
+# IDE junk
+.vscode/
+.DS_Store
