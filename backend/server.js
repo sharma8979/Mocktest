@@ -17,7 +17,7 @@ const app = express();
 app.use(cors({
   origin: [
     "http://localhost:5173",           // local frontend
-    "https://*.vercel.app",            // vercel deployments
+    "https://mocktest-g82lrxtu5-sharma8979s-projects.vercel.app",            // vercel deployments
   ],
   credentials: true,
 }));
