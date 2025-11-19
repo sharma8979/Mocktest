@@ -14,11 +14,27 @@ connectDB();
 const app = express();
 
 // ------------ CORS FIX FOR DEPLOYMENT ------------ //
+// ------------ CORS FIX FOR DEPLOYMENT ------------ //
+const allowedOrigins = [
+  "https://mocktest-733bkxo4q-sharma8979s-projects.vercel.app",
+  "http://localhost:3000",
+];
+
 app.use(
   cors({
-    origin: "*",
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("CORS blocked by server"));
+    },
+    methods: "GET,POST,PUT,PATCH,DELETE",
+    allowedHeaders: "Content-Type, Authorization",
   })
 );
+
+// Preflight handling
+app.options("*", cors());
 
 
 app.use(express.json());
