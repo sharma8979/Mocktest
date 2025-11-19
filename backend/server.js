@@ -14,13 +14,12 @@ connectDB();
 const app = express();
 
 // ------------ CORS FIX FOR DEPLOYMENT ------------ //
-app.use(cors({
-  origin: [
-    "http://localhost:5173",           // local frontend
-    "https://mocktest-733bkxo4q-sharma8979s-projects.vercel.app",            // vercel deployments
-  ],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: "*",
+  })
+);
+
 
 app.use(express.json());
 
