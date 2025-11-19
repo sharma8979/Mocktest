@@ -16,7 +16,7 @@ import {
 } from "../controllers/adminController.js";
 
 const router = express.Router();
-const upload = multer({ dest: "uploads/" });
+// const upload = multer({ dest: "uploads/" });
 
 /**
  * 🧩 TEST MANAGEMENT
@@ -49,7 +49,7 @@ router.post(
   "/tests/:testId/upload",
   protect,
   adminOnly,
-  upload.single("file"),
+  // upload.single("file"),
   uploadQuestions
 );
 
