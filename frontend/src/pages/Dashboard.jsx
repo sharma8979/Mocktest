@@ -33,7 +33,7 @@ export default function Dashboard() {
   if (!user)
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-500 to-purple-500 text-white text-xl">
-        Please log in to continue.
+        Please <a href="/login" className="underline text-pink-300 px-2"> log in </a> to continue.
       </div>
     );
 

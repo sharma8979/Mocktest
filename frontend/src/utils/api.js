@@ -1,8 +1,13 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,    // dynamic base URL for Vercel
-  withCredentials: false,
+  baseURL: import.meta.env.VITE_API_URL, // backend running port
+});
+
+API.interceptors.request.use((req) => {
+  const token = localStorage.getItem("token");
+  if (token) req.headers.Authorization = `Bearer ${token}`;
+  return req;
 });
 
 export default API;

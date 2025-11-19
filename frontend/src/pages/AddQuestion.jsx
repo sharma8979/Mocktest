@@ -114,6 +114,19 @@ export default function AddQuestion() {
     }
   };
 
+  const handleDeleteSaved = async (questionId) => {
+    if (!window.confirm("Are you sure you want to delete this question?"))
+      return;
+    try {
+      await API.delete(`/admin/questions/${questionId}`);
+      setSavedQuestions((prev) => prev.filter((q) => q._id !== questionId));
+      setMessage("🗑 Question deleted");
+    } catch (err) {
+      console.error(err);
+      setMessage("❌ Failed to delete question");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 p-8 text-white">
       <motion.h2

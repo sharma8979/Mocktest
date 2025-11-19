@@ -9,7 +9,7 @@ const generateToken = (userId, role) => {
 // Register
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
     if (!email || !password)
       return res.status(400).json({ message: "Email and password are required" });
 
@@ -17,7 +17,7 @@ export const registerUser = async (req, res) => {
     if (existingUser)
       return res.status(400).json({ message: "User already exists" });
 
-    const user = await User.create({ name, email, password });
+    const user = await User.create({ name, email, password, role: role || "user" });
     const token = generateToken(user._id, user.role);
 
     res.status(201).json({
