@@ -2,6 +2,13 @@ import express from "express";
 import multer from "multer";
 import { protect } from "../middleware/authMiddleware.js";
 import { adminOnly } from "../middleware/roleMiddleware.js";
+import { getAllTests,deleteTest } from "../controllers/adminController.js";
+import {
+  getPendingUsers,
+  approveUser,
+  rejectUser
+} from "../controllers/adminController.js";
+
 
 import {
   createTest,
@@ -59,4 +66,13 @@ router.post(
 router.get("/tests/:testId/results", protect, adminOnly, getResultsForTest);
 router.get("/attempts/:attemptId", protect, adminOnly, getAttempt);
 
+
+router.get("/tests/all", protect, adminOnly, getAllTests);
+router.delete("/tests/:id", protect, adminOnly, deleteTest);
+
+router.get("/pending-users", protect, adminOnly, getPendingUsers);
+
+// Approve & Reject
+router.put("/approve-user/:id", protect, adminOnly, approveUser);
+router.put("/reject-user/:id", protect, adminOnly, rejectUser);
 export default router;

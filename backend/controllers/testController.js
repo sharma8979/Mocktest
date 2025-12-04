@@ -2,17 +2,13 @@ import Test from '../models/Test.js';
 import Question from '../models/Question.js';
 
 /**
- * ✅ List all published tests (visible to users)
+ * ✅ List ALL published tests (ALWAYS visible)
  */
 export const listPublishedTests = async (req, res) => {
   try {
-    const now = new Date();
-
-    // Only send tests that are published and whose startTime has passed
+    // show all published tests, NO time restriction
     const tests = await Test.find({
-      published: true,
-      startTime: { $lte: now }, // already started
-      endTime: { $gte: now },   // not yet ended
+      published: true
     }).select('title description duration startTime endTime createdAt');
 
     res.json({ tests });
@@ -22,8 +18,10 @@ export const listPublishedTests = async (req, res) => {
   }
 };
 
+
 /**
- * ✅ Fetch a test + its questions (only when within allowed time)
+ * ✅ Fetch a test + questions (NO time restriction)
+ * Test will be available ANYTIME until admin deletes it
  */
 export const getTestWithQuestions = async (req, res) => {
   try {
@@ -34,30 +32,14 @@ export const getTestWithQuestions = async (req, res) => {
       return res.status(404).json({ message: 'Test not found or unpublished' });
     }
 
-    const now = new Date();
+    // ❌ REMOVE START TIME CHECK
+    // ❌ REMOVE END TIME CHECK
+    // TEST WILL ALWAYS OPEN
 
-    // 🕓 Restrict access before test start
-    if (test.startTime && now < new Date(test.startTime)) {
-      return res.status(403).json({
-        message: 'Test has not started yet.',
-        startTime: test.startTime,
-      });
-    }
-
-    // ⏳ Restrict access after test end
-    if (test.endTime && now > new Date(test.endTime)) {
-      return res.status(403).json({
-        message: 'This test has ended.',
-        endTime: test.endTime,
-      });
-    }
-
-    // Fetch questions but DO NOT include correct answers
     const questions = await Question.find({ testId: id })
       .sort({ order: 1 })
       .lean();
 
-    // Remove isCorrect from options before sending
     const safeQuestions = questions.map((q) => ({
       ...q,
       options: q.options?.map((opt) => ({

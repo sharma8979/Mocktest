@@ -4,6 +4,8 @@ import Attempt from "../models/Attempt.js";
 import mongoose from "mongoose";
 import fs from "fs";
 import csvParser from "csv-parser";
+import User from "../models/User.js";
+
 
 // 🧩 Create a test
 export const createTest = async (req, res) => {
@@ -35,6 +37,24 @@ export const createTest = async (req, res) => {
     res.status(500).json({ message: "Server error while creating test" });
   }
 };
+
+export const deleteTest = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // delete all questions belonging to this test
+    await Question.deleteMany({ testId: id });
+
+    // delete the test
+    await Test.findByIdAndDelete(id);
+
+    res.json({ message: "Test deleted successfully!" });
+  } catch (err) {
+    console.error("❌ Delete Test Error:", err);
+    res.status(500).json({ message: "Error deleting test" });
+  }
+};
+
 
 // 🧩 Add a single question to test
 export const addQuestion = async (req, res) => {
@@ -260,3 +280,54 @@ export const uploadQuestions = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+export const getAllTests = async (req, res) => {
+  try {
+    const tests = await Test.find();
+    res.json({ tests });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+export const getPendingUsers = async (req, res) => {
+  try {
+    const users = await User.find({ status: "pending" }).select("-password");
+    res.json({ users });
+  } catch (err) {
+    console.error("Error fetching pending users:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const approveUser = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { status: "approved" },
+      { new: true }
+    );
+    res.json({ message: "User approved", user });
+  } catch (err) {
+    console.error("Approve error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const rejectUser = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { status: "rejected" },
+      { new: true }
+    );
+    res.json({ message: "User rejected", user });
+  } catch (err) {
+    console.error("Reject error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+

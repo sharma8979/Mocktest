@@ -1,10 +1,8 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import API from "../utils/api.js";
 import { motion } from "framer-motion";
-
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -15,13 +13,26 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+
     try {
       const { data } = await API.post("/auth/login", { email, password });
+
+      // Save session
       login(data.user, data.token);
+
+      // Redirect based on role
       if (data.user.role === "admin") navigate("/admin");
       else navigate("/");
     } catch (err) {
-      setError("Invalid credentials");
+      // Handle pending approval case
+      if (err.response?.status === 403) {
+        setError("Your account is pending approval by admin.");
+        return;
+      }
+
+      // Generic login errors
+      setError(err.response?.data?.message || "Invalid credentials");
     }
   };
 
@@ -77,7 +88,10 @@ export default function Login() {
 
           <motion.button
             type="submit"
-            whileHover={{ scale: 1.05, boxShadow: "0px 0px 20px rgba(147, 51, 234, 0.6)" }}
+            whileHover={{
+              scale: 1.05,
+              boxShadow: "0px 0px 20px rgba(147, 51, 234, 0.6)",
+            }}
             whileTap={{ scale: 0.95 }}
             className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-semibold shadow-lg transition-all duration-500 hover:brightness-110"
           >
@@ -95,7 +109,6 @@ export default function Login() {
           </motion.p>
         )}
 
-        {/* Optional footer */}
         <p className="text-white/80 text-sm mt-8">
           New here?{" "}
           <span

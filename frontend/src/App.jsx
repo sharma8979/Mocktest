@@ -10,6 +10,8 @@ import { useAuth } from "./context/AuthContext.jsx";
 import TestAttempt from "./pages/TestAttempt.jsx";
 import Leaderboard from "./pages/LeaderBoard.jsx"
 import UploadQuestions from "./pages/UploadQuestions.jsx";
+import PendingUsers from "./pages/PendingUsers.jsx";
+
 import "./index.css";
 
 
@@ -38,6 +40,14 @@ export default function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/admin/pending-users"
+  element={
+    <PrivateRoute role="admin">
+      <PendingUsers />
+    </PrivateRoute>
+  }
+/>
+
         <Route
   path="/admin/upload-questions/:id"
   element={

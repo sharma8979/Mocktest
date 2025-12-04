@@ -13,27 +13,21 @@ connectDB();
 
 const app = express();
 
-// ------------ CORS FIX FOR DEPLOYMENT ------------ //
-// ------------ CORS FIX FOR DEPLOYMENT ------------ //
-const allowedOrigins = [
-  "https://mocktest-733bkxo4q-sharma8979s-projects.vercel.app",
-  "http://localhost:3000",
-];
+// ---------- GLOBAL CORS FIX FOR VERCEL ---------- //
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");  
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error("CORS blocked by server"));
-    },
-    methods: "GET,POST,PUT,PATCH,DELETE",
-    allowedHeaders: "Content-Type, Authorization",
-  })
-);
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
 
+  next();
+});
 
+// Optional: if you want to use express CORS package too
+app.use(cors());
 
 app.use(express.json());
 
