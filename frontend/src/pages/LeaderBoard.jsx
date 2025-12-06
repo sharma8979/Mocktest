@@ -3,12 +3,13 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import API from "../utils/api.js";
 import { motion } from "framer-motion";
-
+import { useAuth } from "../context/AuthContext.jsx"; // optional — uses auth context if present
 
 export default function Leaderboard() {
   const { id: testId } = useParams();
   const [leaderboard, setLeaderboard] = useState([]);
   const navigate = useNavigate();
+  const auth = useAuth?.() ?? null; // safe if useAuth exists
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
@@ -17,14 +18,38 @@ export default function Leaderboard() {
         setLeaderboard(data.leaderboard || []);
       } catch (err) {
         console.error("Error fetching leaderboard:", err);
+        setLeaderboard([]); // ensure it's an array on error
       }
     };
     fetchLeaderboard();
   }, [testId]);
 
+  // decide where to go on "Back"
+  const handleBack = () => {
+    // prefer auth context if available
+    const userFromContext = auth?.user;
+    if (userFromContext?.role === "admin") {
+      navigate("/admin");
+      return;
+    }
+
+    // fallback to localStorage
+    try {
+      const stored = JSON.parse(localStorage.getItem("user"));
+      if (stored?.role === "admin") {
+        navigate("/admin");
+        return;
+      }
+    } catch (e) {
+      // ignore parse errors
+    }
+
+    // default for normal users / unknown
+    navigate("/");
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-8 text-white">
-      
+    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-8 text-white relative">
       {/* Title */}
       <motion.h2
         initial={{ opacity: 0, y: -30 }}
@@ -36,18 +61,15 @@ export default function Leaderboard() {
       </motion.h2>
 
       {/* If no data */}
-      {leaderboard.length === 0 && (
+      {leaderboard.length === 0 ? (
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-center text-xl font-medium text-white/80 mt-20"
+          className="text-center text-xl font-medium text-white/80 mt-8"
         >
           No submissions yet for this test.
         </motion.p>
-      )}
-
-      {/* Leaderboard Table */}
-      {leaderboard.length > 0 && (
+      ) : (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -67,10 +89,10 @@ export default function Leaderboard() {
             <tbody>
               {leaderboard.map((user, index) => (
                 <motion.tr
-                  key={user.rank}
+                  key={user.rank ?? index}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
+                  transition={{ delay: index * 0.05 }}
                   className="hover:bg-white/10 transition"
                 >
                   <td className="py-4 px-6 font-bold text-lg">{user.rank}</td>
@@ -86,12 +108,12 @@ export default function Leaderboard() {
         </motion.div>
       )}
 
-      {/* Back Button */}
-      <div className="text-center mt-12">
+      {/* Back Button — ALWAYS rendered and centered */}
+      <div className="mt-12 flex justify-center">
         <motion.button
           whileHover={{ scale: 1.05, boxShadow: "0px 0px 20px rgba(255,255,255,0.4)" }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => navigate("/")}
+          onClick={handleBack}
           className="px-6 py-3 bg-white/20 text-white rounded-xl font-semibold shadow-xl backdrop-blur-lg hover:bg-white/30 transition"
         >
           ⬅ Back to Dashboard
