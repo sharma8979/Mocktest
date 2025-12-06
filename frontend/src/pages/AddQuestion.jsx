@@ -28,6 +28,8 @@ export default function AddQuestion() {
   const [staged, setStaged] = useState([]);
   const [savedQuestions, setSavedQuestions] = useState([]);
   const [message, setMessage] = useState("");
+  const [file, setFile] = useState(null);
+
 
   useEffect(() => {
     const loadSaved = async () => {
@@ -113,6 +115,30 @@ export default function AddQuestion() {
       setMessage("❌ Failed to save");
     }
   };
+  const handleFileUpload = async () => {
+  if (!file) return setMessage("⚠ Please choose a file first");
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const { data } = await API.post(
+      `/admin/tests/${testId}/upload`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+
+    setMessage(`✅ Uploaded ${data.count} questions!`);
+
+    // reload saved questions
+    const { data: fresh } = await API.get(`/admin/tests/${testId}/questions`);
+    setSavedQuestions(fresh.questions || []);
+  } catch (err) {
+    console.error(err);
+    setMessage("❌ Upload failed");
+  }
+};
+
 
   const handleDeleteSaved = async (questionId) => {
     if (!window.confirm("Are you sure you want to delete this question?"))
@@ -226,6 +252,29 @@ export default function AddQuestion() {
           animate={{ opacity: 1, x: 0 }}
           className="w-full max-w-2xl"
         >
+          {/* FILE UPLOAD SECTION */}
+<div className="mt-6 p-4 bg-white/10 rounded-xl border border-white/20">
+  <h4 className="text-xl font-semibold mb-3">Upload Questions File 📤</h4>
+
+  <input
+    type="file"
+    accept=".csv, .json"
+    onChange={(e) => setFile(e.target.files[0])}
+    className="w-full p-2 rounded-lg bg-white/20"
+  />
+
+  <button
+    onClick={handleFileUpload}
+    className="w-full py-2 mt-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl font-semibold shadow-lg hover:scale-105 transition"
+  >
+    📤 Upload File
+  </button>
+
+  <p className="text-sm text-white/70 mt-2">
+    Supported formats: <strong>CSV, JSON</strong>
+  </p>
+</div>
+
           {/* STAGED */}
           <h3 className="text-2xl font-semibold mb-3">Staged Questions</h3>
           <div className="space-y-4">
