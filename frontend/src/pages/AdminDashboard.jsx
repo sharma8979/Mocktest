@@ -49,6 +49,13 @@ export default function AdminDashboard() {
       console.error(err);
     }
   };
+  // LOGOUT
+  const handleLogout = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  navigate("/login");
+};
+
 
   // PUBLISH / UNPUBLISH
   const togglePublish = async (test) => {
@@ -69,22 +76,35 @@ export default function AdminDashboard() {
 
       {/* Navbar */}
       <nav className="flex justify-between items-center px-8 py-4 backdrop-blur-md bg-white/10 border-b border-white/20 shadow-lg sticky top-0 z-20">
-        <h1 className="text-2xl font-bold text-white drop-shadow-md">
-          Admin Dashboard 👑
-        </h1>
-        <button
-          onClick={() => navigate("/admin/create-test")}
-          className="bg-gradient-to-r from-pink-500 to-indigo-500 hover:from-indigo-500 hover:to-pink-500 px-5 py-2 rounded-xl font-semibold shadow-lg transition-all"
-        >
-          ➕ Create Test
-        </button>
-        <button
-          onClick={() => navigate("/admin/pending-users")}
-          className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-red-500 rounded-xl shadow-lg"
-        >
-          👥 Pending User Requests
-        </button>
-      </nav>
+  <h1 className="text-2xl font-bold text-white drop-shadow-md">
+    Admin Dashboard 👑
+  </h1>
+
+  <div className="flex gap-4">
+    <button
+      onClick={() => navigate("/admin/create-test")}
+      className="bg-gradient-to-r from-pink-500 to-indigo-500 hover:from-indigo-500 hover:to-pink-500 px-5 py-2 rounded-xl font-semibold shadow-lg transition-all"
+    >
+      ➕ Create Test
+    </button>
+
+    <button
+      onClick={() => navigate("/admin/pending-users")}
+      className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-red-500 rounded-xl shadow-lg"
+    >
+      👥 Pending User Requests
+    </button>
+
+    {/* LOGOUT BUTTON */}
+    <button
+      onClick={handleLogout}
+      className="px-4 py-2 bg-gradient-to-r from-red-500 to-rose-700 rounded-xl shadow-lg hover:scale-105 transition-all"
+    >
+      🚪 Logout
+    </button>
+  </div>
+</nav>
+
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 px-8 mt-10 text-center">

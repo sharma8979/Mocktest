@@ -27,7 +27,15 @@ app.use((req, res, next) => {
 });
 
 // Optional: if you want to use express CORS package too
-app.use(cors());
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://*.vercel.app",
+    process.env.CORS_ORIGIN
+  ],
+  credentials: true
+}));
+
 
 app.use(express.json());
 
