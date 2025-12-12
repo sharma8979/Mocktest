@@ -1,10 +1,7 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../utils/api.js";
 import { motion } from "framer-motion";
-
-
 
 export default function CreateTest() {
   const [title, setTitle] = useState("");
@@ -16,29 +13,48 @@ export default function CreateTest() {
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
+  // ------- FIXED END TIME CALCULATION -------
   const calculateEndTime = (start, dur) => {
     if (!start || !dur) return "";
-    const startDate = new Date(start);
-    const endDate = new Date(startDate.getTime() + dur * 60000);
-    return endDate.toISOString().slice(0, 16);
+    const s = new Date(start + ":00"); // Ensure valid ISO support
+
+    if (isNaN(s.getTime())) return "";
+
+    const end = new Date(s.getTime() + dur * 60000);
+    return end.toISOString().slice(0, 16); // format compatible with datetime-local
   };
 
+  // ------- Start Time Change -------
   const handleStartTimeChange = (e) => {
     const newStart = e.target.value;
     setStartTime(newStart);
     setEndTime(calculateEndTime(newStart, duration));
   };
 
+  // ------- Duration Change -------
   const handleDurationChange = (e) => {
-    const newDuration = e.target.value;
+    const newDuration = Number(e.target.value);
     setDuration(newDuration);
+
     if (startTime) setEndTime(calculateEndTime(startTime, newDuration));
   };
 
+  // ------- FORM SUBMIT -------
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
-      if (new Date(startTime) <= new Date()) {
+      if (!startTime) {
+        alert("⚠️ Please select a start time");
+        return;
+      }
+
+      // Convert datetime-local → ISO Date
+      const start = new Date(startTime + ":00");
+      const now = new Date();
+
+      // FIXED: Past time validation
+      if (start <= now) {
         alert("⚠️ Start time must be in the future!");
         return;
       }
@@ -48,11 +64,15 @@ export default function CreateTest() {
         description,
         duration,
         published,
-        startTime,
+        startTime: start.toISOString(), // send correct format
       });
 
       setMessage("✅ Test created successfully!");
-      setTimeout(() => navigate(`/admin/add-question/${data.test._id}`), 1500);
+
+      setTimeout(() => {
+        navigate(`/admin/add-question/${data.test._id}`);
+      }, 1500);
+
     } catch (err) {
       console.error(err);
       setMessage("❌ Failed to create test");
@@ -61,7 +81,8 @@ export default function CreateTest() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-indigo-900 to-purple-900 text-white flex items-center justify-center px-6 relative overflow-hidden">
-      {/* ✨ Background blobs */}
+
+      {/* Background Effects */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.25 }}
@@ -75,7 +96,7 @@ export default function CreateTest() {
         className="absolute w-[600px] h-[600px] bg-indigo-500 rounded-full blur-3xl bottom-10 right-10 opacity-10"
       />
 
-      {/* 🧊 Form Card */}
+      {/* Form Card */}
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
@@ -87,41 +108,36 @@ export default function CreateTest() {
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          
           {/* Title */}
-          <motion.div whileFocus={{ scale: 1.02 }}>
-            <input
-              type="text"
-              placeholder="Test Title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              className="w-full px-4 py-3 rounded-xl bg-white/80 text-gray-800 placeholder-gray-500 shadow-inner focus:ring-4 focus:ring-indigo-300 outline-none transition-all duration-300"
-            />
-          </motion.div>
+          <input
+            type="text"
+            placeholder="Test Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+            className="w-full px-4 py-3 rounded-xl bg-white/80 text-gray-800 placeholder-gray-500 shadow-inner focus:ring-4 focus:ring-indigo-300 outline-none transition-all duration-300"
+          />
 
           {/* Description */}
-          <motion.div whileFocus={{ scale: 1.02 }}>
-            <textarea
-              placeholder="Description (optional)"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows="3"
-              className="w-full px-4 py-3 rounded-xl bg-white/80 text-gray-800 placeholder-gray-500 shadow-inner focus:ring-4 focus:ring-indigo-300 outline-none transition-all duration-300"
-            />
-          </motion.div>
+          <textarea
+            placeholder="Description (optional)"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows="3"
+            className="w-full px-4 py-3 rounded-xl bg-white/80 text-gray-800 placeholder-gray-500 shadow-inner focus:ring-4 focus:ring-indigo-300 outline-none transition-all duration-300"
+          />
 
           {/* Duration */}
-          <motion.div whileFocus={{ scale: 1.02 }}>
-            <input
-              type="number"
-              placeholder="Duration (minutes)"
-              value={duration}
-              onChange={handleDurationChange}
-              required
-              min="1"
-              className="w-full px-4 py-3 rounded-xl bg-white/80 text-gray-800 placeholder-gray-500 shadow-inner focus:ring-4 focus:ring-indigo-300 outline-none transition-all duration-300"
-            />
-          </motion.div>
+          <input
+            type="number"
+            placeholder="Duration (minutes)"
+            value={duration}
+            onChange={handleDurationChange}
+            required
+            min="1"
+            className="w-full px-4 py-3 rounded-xl bg-white/80 text-gray-800 placeholder-gray-500 shadow-inner focus:ring-4 focus:ring-indigo-300 outline-none transition-all duration-300"
+          />
 
           {/* Start Time */}
           <label className="block text-left text-sm font-semibold text-white/80">
@@ -135,7 +151,7 @@ export default function CreateTest() {
             />
           </label>
 
-          {/* End Time */}
+          {/* End Time (Auto-Generated) */}
           <label className="block text-left text-sm font-semibold text-white/80">
             End Time:
             <input
@@ -160,10 +176,7 @@ export default function CreateTest() {
           {/* Submit Button */}
           <motion.button
             type="submit"
-            whileHover={{
-              scale: 1.05,
-              boxShadow: "0px 0px 25px rgba(147, 51, 234, 0.6)",
-            }}
+            whileHover={{ scale: 1.05, boxShadow: "0px 0px 25px rgba(147, 51, 234, 0.6)" }}
             whileTap={{ scale: 0.95 }}
             className="w-full py-3 mt-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 rounded-xl text-white font-semibold shadow-lg hover:brightness-110 transition-all duration-500"
           >
@@ -171,6 +184,7 @@ export default function CreateTest() {
           </motion.button>
         </form>
 
+        {/* Message */}
         {message && (
           <motion.p
             initial={{ opacity: 0 }}

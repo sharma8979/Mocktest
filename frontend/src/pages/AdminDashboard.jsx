@@ -5,19 +5,26 @@ import { motion } from "framer-motion";
 
 export default function AdminDashboard() {
   const [tests, setTests] = useState([]);
+  const [totalUsers, setTotalUsers] = useState(0);
+
   const navigate = useNavigate();
 
-  // Fetch ALL tests (admin sees everything)
+  // Fetch ALL tests + user count
   useEffect(() => {
-    const fetchTests = async () => {
+    const fetchStats = async () => {
       try {
-        const { data } = await API.get("/admin/tests/all");
-        setTests(data.tests || []);
+        const testsRes = await API.get("/admin/tests/all");
+        setTests(testsRes.data.tests || []);
+
+        const usersRes = await API.get("/admin/user-count");
+        setTotalUsers(usersRes.data.count || 0);
+
       } catch (err) {
         console.error(err);
       }
     };
-    fetchTests();
+
+    fetchStats();
   }, []);
 
   // STATUS LOGIC
@@ -49,13 +56,13 @@ export default function AdminDashboard() {
       console.error(err);
     }
   };
+
   // LOGOUT
   const handleLogout = () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
-  navigate("/login");
-};
-
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
 
   // PUBLISH / UNPUBLISH
   const togglePublish = async (test) => {
@@ -76,41 +83,39 @@ export default function AdminDashboard() {
 
       {/* Navbar */}
       <nav className="flex justify-between items-center px-8 py-4 backdrop-blur-md bg-white/10 border-b border-white/20 shadow-lg sticky top-0 z-20">
-  <h1 className="text-2xl font-bold text-white drop-shadow-md">
-    Admin Dashboard 👑
-  </h1>
+        <h1 className="text-2xl font-bold text-white drop-shadow-md">
+          Admin Dashboard 👑
+        </h1>
 
-  <div className="flex gap-4">
-    <button
-      onClick={() => navigate("/admin/create-test")}
-      className="bg-gradient-to-r from-pink-500 to-indigo-500 hover:from-indigo-500 hover:to-pink-500 px-5 py-2 rounded-xl font-semibold shadow-lg transition-all"
-    >
-      ➕ Create Test
-    </button>
+        <div className="flex gap-4">
+          <button
+            onClick={() => navigate("/admin/create-test")}
+            className="bg-gradient-to-r from-pink-500 to-indigo-500 hover:from-indigo-500 hover:to-pink-500 px-5 py-2 rounded-xl font-semibold shadow-lg transition-all"
+          >
+            ➕ Create Test
+          </button>
 
-    <button
-      onClick={() => navigate("/admin/pending-users")}
-      className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-red-500 rounded-xl shadow-lg"
-    >
-      👥 Pending User Requests
-    </button>
+          <button
+            onClick={() => navigate("/admin/pending-users")}
+            className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-red-500 rounded-xl shadow-lg"
+          >
+            👥 Pending User Requests
+          </button>
 
-    {/* LOGOUT BUTTON */}
-    <button
-      onClick={handleLogout}
-      className="px-4 py-2 bg-gradient-to-r from-red-500 to-rose-700 rounded-xl shadow-lg hover:scale-105 transition-all"
-    >
-      🚪 Logout
-    </button>
-  </div>
-</nav>
+          {/* LOGOUT BUTTON */}
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-gradient-to-r from-red-500 to-rose-700 rounded-xl shadow-lg hover:scale-105 transition-all"
+          >
+            🚪 Logout
+          </button>
+        </div>
+      </nav>
 
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 px-8 mt-10 text-center">
+      {/* Stats Section */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 px-8 mt-10 text-center">
+        <StatCard title="Total Users" value={totalUsers} color="text-indigo-400" />
         <StatCard title="Total Tests" value={tests.length} color="text-pink-400" />
-        <StatCard title="Total Users" value="---" color="text-indigo-400" />
-        <StatCard title="Attempts Recorded" value="---" color="text-green-400" />
       </div>
 
       {/* Tests List */}
@@ -141,7 +146,6 @@ export default function AdminDashboard() {
                 >
                   <div className="flex justify-between items-center mb-3">
                     <h3 className="text-2xl font-semibold">{test.title}</h3>
-
                     <span className={`px-3 py-1 rounded-xl text-xs font-bold ${getStatusColor(status)}`}>
                       {status}
                     </span>
@@ -165,7 +169,7 @@ export default function AdminDashboard() {
                     </span>
                   </p>
 
-                  {/* Button Group */}
+                  {/* Buttons */}
                   <div className="flex flex-wrap justify-center gap-3">
                     <Button label="➕ Add Qs" color="green" onClick={() => navigate(`/admin/add-question/${test._id}`)} />
                     <Button label="📤 Upload" color="yellow" onClick={() => navigate(`/admin/upload-questions/${test._id}`)} />
@@ -183,8 +187,7 @@ export default function AdminDashboard() {
   );
 }
 
-/* Small Reusable Components */
-
+/* Reusable Components */
 const Button = ({ label, color, onClick }) => {
   const colors = {
     green: "from-green-500 to-emerald-600",

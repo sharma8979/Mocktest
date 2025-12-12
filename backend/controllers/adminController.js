@@ -7,6 +7,7 @@ import csvParser from "csv-parser";
 import User from "../models/User.js";
 
 
+
 // 🧩 Create a test
 export const createTest = async (req, res) => {
   try {
@@ -54,7 +55,6 @@ export const deleteTest = async (req, res) => {
     res.status(500).json({ message: "Error deleting test" });
   }
 };
-
 
 // 🧩 Add a single question to test
 export const addQuestion = async (req, res) => {
@@ -290,7 +290,6 @@ export const getAllTests = async (req, res) => {
   }
 };
 
-
 export const getPendingUsers = async (req, res) => {
   try {
     const users = await User.find({ status: "pending" }).select("-password");
@@ -328,6 +327,51 @@ export const rejectUser = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+export const uploadPdfQuestions = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No PDF uploaded" });
+
+    const fileBuffer = fs.readFileSync(req.file.path);
+
+    // ESM compatible import for pdf-parse
+    const pdfModule = await import("pdf-parse");
+    const pdf = pdfModule.default || pdfModule;
+
+    const data = await pdf(fileBuffer);
+
+    console.log("Extracted text:", data.text);
+
+    res.json({ message: "PDF processed", text: data.text });
+
+  } catch (err) {
+    console.error("PDF Parse error:", err);
+    res.status(500).json({ message: "PDF processing failed" });
+  }
+};
+
+export const getUserCount = async (req, res) => {
+  try {
+    const count = await User.countDocuments({ role: "user", status: "approved" });
+    console.log("User count:", count);
+    res.json({ count });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getAttemptCount = async (req, res) => {
+  try {
+    const count = await Attempt.countDocuments();
+    res.json({ count });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
+
 
 
 
