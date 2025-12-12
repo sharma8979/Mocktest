@@ -27,14 +27,27 @@ app.use((req, res, next) => {
 });
 
 // Optional: if you want to use express CORS package too
+const allowedOrigins = [
+  "http://localhost:5173",
+];
+
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://*.vercel.app",
-    process.env.CORS_ORIGIN
-  ],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+
+    // Allow all vercel frontend urls --> https://something.vercel.app
+    if (origin.endsWith(".vercel.app")) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+
+    return callback(new Error("❌ CORS blocked: " + origin), false);
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
+
 
 
 app.use(express.json());
