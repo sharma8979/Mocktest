@@ -14,7 +14,7 @@ connectDB();
 const app = express();
 
 // ✅ Put your exact frontend domain here:
-const FRONTEND_URL = "https://mocktest-maleh3u7e-sharma8979s-projects.vercel.app";
+const FRONTEND_URL = "https://mocktest-2ac6cblbd-sharma8979s-projects.vercel.app/";
 
 app.use(cors({
   origin: [FRONTEND_URL, "http://localhost:5173"],
