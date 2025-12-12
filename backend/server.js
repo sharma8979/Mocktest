@@ -13,32 +13,43 @@ connectDB();
 
 const app = express();
 
-// ✅ Put your exact frontend domain here:
-const FRONTEND_URL = "https://mocktest-2ac6cblbd-sharma8979s-projects.vercel.app/";
+// ---------- GLOBAL CORS FIX FOR VERCEL ---------- //
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");  
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
 
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+
+  next();
+});
+
+// Optional: if you want to use express CORS package too
 app.use(cors({
-  origin: [FRONTEND_URL, "http://localhost:5173"],
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  origin: [
+    "http://localhost:5173",
+    "https://*.vercel.app",
+    process.env.CORS_ORIGIN
+  ],
   credentials: true
 }));
 
-// Allow preflight requests
-app.options("*", cors());
 
 app.use(express.json());
 
-// Routes
+// ------------------- ROUTES ---------------------- //
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/tests", testRoutes);
 app.use("/api/attempts", attemptRoutes);
 
-// Root
+// ------------------- ROOT ------------------------ //
 app.get("/", (req, res) => {
   res.send("MockTestHub API running...");
 });
 
-// Start Server
+// ------------------ START SERVER ----------------- //
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
