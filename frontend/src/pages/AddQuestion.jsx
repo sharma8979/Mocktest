@@ -1,178 +1,274 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import API from "../utils/api.js";
 import { motion } from "framer-motion";
 
-export default function CreateTest() {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [duration, setDuration] = useState(30);
-  const [published, setPublished] = useState(false);
-
-  // ⭐ Indian format values
-  const [date, setDate] = useState("");      // DD-MM-YYYY
-  const [time, setTime] = useState("");      // HH:MM AM/PM
-  const [endTime, setEndTime] = useState(""); // formatted IN
-
-  const [message, setMessage] = useState("");
+export default function AddQuestion() {
+  const { id: testId } = useParams();
   const navigate = useNavigate();
 
-  // Convert DD-MM-YYYY + 12-hour time → JS Date
-  const parseIndianDateTime = (dateStr, timeStr) => {
-    if (!dateStr || !timeStr) return null;
+  /* ---------------- FORM STATE ---------------- */
+  const [question, setQuestion] = useState("");
+  const [options, setOptions] = useState(["", "", "", ""]);
+  const [correctIndex, setCorrectIndex] = useState(0);
+  const [marks, setMarks] = useState(1);
+  const [negativeMarks, setNegativeMarks] = useState(0);
 
-    const [day, month, year] = dateStr.split("-").map(Number);
-    let [timePart, modifier] = timeStr.split(" "); // Example: "05:30 PM"
-    let [hours, minutes] = timePart.split(":").map(Number);
+  /* ---------------- STAGED & SAVED ---------------- */
+  const [staged, setStaged] = useState([]);
+  const [savedQuestions, setSavedQuestions] = useState([]);
 
-    if (modifier === "PM" && hours !== 12) hours += 12;
-    if (modifier === "AM" && hours === 12) hours = 0;
+  /* ---------------- PDF ---------------- */
+  const [pdfFile, setPdfFile] = useState(null);
+  const [message, setMessage] = useState("");
 
-    return new Date(year, month - 1, day, hours, minutes, 0);
+  /* ---------------- LOAD SAVED QUESTIONS ---------------- */
+  useEffect(() => {
+    loadSavedQuestions();
+  }, []);
+
+  const loadSavedQuestions = async () => {
+    try {
+      const { data } = await API.get(`/admin/tests/${testId}/questions`);
+      setSavedQuestions(data.questions || []);
+    } catch {}
   };
 
-  // Convert JS Date → Indian readable
-  const formatIndianDateTime = (date) => {
-    return date.toLocaleString("en-IN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
-
-  // Calculate end time
-  const updateEndTime = (newDate, newTime, dur) => {
-    const start = parseIndianDateTime(newDate, newTime);
-    if (!start) return "";
-
-    const end = new Date(start.getTime() + Number(dur) * 60000);
-    return formatIndianDateTime(end);
-  };
-
-  const handleDateChange = (e) => {
-    const val = e.target.value;
-    setDate(val);
-    setEndTime(updateEndTime(val, time, duration));
-  };
-
-  const handleTimeChange = (e) => {
-    const val = e.target.value;
-    setTime(val);
-    setEndTime(updateEndTime(date, val, duration));
-  };
-
-  const handleDurationChange = (e) => {
-    const dur = e.target.value;
-    setDuration(dur);
-    setEndTime(updateEndTime(date, time, dur));
-  };
-
-  const handleSubmit = async (e) => {
+  /* ---------------- ADD TO STAGED ---------------- */
+  const addToStaged = (e) => {
     e.preventDefault();
 
-    const startDate = parseIndianDateTime(date, time);
-    if (!startDate) {
-      setMessage("⚠ Invalid date or time");
+    if (!question || options.some((o) => !o)) {
+      setMessage("⚠ Please complete all fields before staging");
       return;
     }
 
-    if (startDate <= new Date()) {
-      setMessage("⚠ Start time must be in the future");
+    setStaged((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        text: question,
+        options: options.map((o, i) => ({
+          text: o,
+          isCorrect: i === correctIndex,
+        })),
+        marks,
+        negativeMarks,
+      },
+    ]);
+
+    resetForm();
+    setMessage("✨ Question added to staging area");
+  };
+
+  /* ---------------- SAVE ALL ---------------- */
+  const saveAllToDatabase = async () => {
+    if (staged.length === 0) {
+      setMessage("⚠ No staged questions to save");
       return;
     }
 
     try {
-      const { data } = await API.post("/admin/tests", {
-        title,
-        description,
-        duration,
-        published,
-        startTime: startDate.toISOString(), // backend gets clean timestamp
+      const payload = staged.map((q) => ({
+        text: q.text,
+        options: q.options,
+        marks: q.marks,
+        negativeMarks: q.negativeMarks,
+      }));
+
+      await API.post(`/admin/tests/${testId}/questions/bulk`, {
+        questions: payload,
       });
 
-      setMessage("✅ Test created successfully!");
-      setTimeout(() => navigate(`/admin/add-question/${data.test._id}`), 1200);
+      setMessage("✅ All questions saved successfully");
+      setStaged([]);
+      loadSavedQuestions();
     } catch (err) {
       console.error(err);
-      setMessage("❌ Failed to create test");
+      setMessage("❌ Failed to save questions");
     }
   };
 
+  /* ---------------- PDF UPLOAD (STAGED) ---------------- */
+  const uploadPdf = async () => {
+    if (!pdfFile) {
+      setMessage("⚠ Please select a PDF file");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", pdfFile);
+
+    try {
+      const { data } = await API.post(
+        `/admin/tests/${testId}/upload-pdf`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+
+      setStaged((prev) => [...prev, ...(data.questions || [])]);
+      setMessage("📄 PDF questions added to staging");
+    } catch (err) {
+      console.error(err);
+      setMessage("❌ PDF upload failed");
+    }
+  };
+
+  const resetForm = () => {
+    setQuestion("");
+    setOptions(["", "", "", ""]);
+    setCorrectIndex(0);
+    setMarks(1);
+    setNegativeMarks(0);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-indigo-900 to-purple-900 text-white flex items-center justify-center px-6 relative overflow-hidden">
-      
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl p-10 w-full max-w-lg shadow-xl"
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 px-6 py-10 text-gray-900">
+
+      {/* BACK */}
+      <button
+        onClick={() => navigate("/admin")}
+        className="mb-6 px-4 py-2 rounded-xl bg-indigo-500 text-white shadow"
       >
-        <h2 className="text-4xl font-bold text-center mb-6 text-pink-300">
-          🧾 Create Test (India Format)
+        ⬅ Back to Admin Dashboard
+      </button>
+
+      <h1 className="text-4xl font-extrabold text-center mb-4 text-indigo-700">
+        Question Builder
+      </h1>
+      <p className="text-center text-gray-600 mb-10">
+        Create, review, and finalize questions before publishing them to your test.
+      </p>
+
+      {/* ---------------- ADD FORM ---------------- */}
+      <motion.div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl p-8">
+        <h2 className="text-2xl font-bold mb-6 text-purple-700">
+          ➕ Add Question (Staging)
         </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-
-          <input
-            type="text"
-            placeholder="Test Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            className="w-full p-3 rounded-lg bg-white/80 text-black"
-          />
-
+        <form onSubmit={addToStaged} className="space-y-4">
           <textarea
-            placeholder="Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full p-3 rounded-lg bg-white/80 text-black"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="Enter the question text"
+            className="w-full p-3 rounded border"
           />
 
-          <input
-            type="number"
-            value={duration}
-            onChange={handleDurationChange}
-            placeholder="Duration (mins)"
-            className="w-full p-3 rounded-lg bg-white/80 text-black"
-            min="1"
-          />
+          {options.map((opt, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <input
+                type="radio"
+                checked={correctIndex === i}
+                onChange={() => setCorrectIndex(i)}
+              />
+              <input
+                value={opt}
+                onChange={(e) => {
+                  const arr = [...options];
+                  arr[i] = e.target.value;
+                  setOptions(arr);
+                }}
+                placeholder={`Option ${i + 1}`}
+                className="flex-1 p-2 rounded border"
+              />
+            </div>
+          ))}
 
-          {/* DATE INPUT (DD-MM-YYYY) */}
-          <input
-            type="text"
-            placeholder="Date (DD-MM-YYYY)"
-            value={date}
-            onChange={handleDateChange}
-            className="w-full p-3 rounded-lg bg-white/80 text-black"
-          />
+          <div className="flex gap-4">
+            <input
+              type="number"
+              min="1"
+              value={marks}
+              onChange={(e) => setMarks(Number(e.target.value))}
+              className="w-28 p-2 border rounded"
+              placeholder="Marks"
+            />
+            <input
+              type="number"
+              min="0"
+              value={negativeMarks}
+              onChange={(e) => setNegativeMarks(Number(e.target.value))}
+              className="w-28 p-2 border rounded"
+              placeholder="Negative"
+            />
+          </div>
 
-          {/* TIME INPUT (HH:MM AM/PM) */}
-          <input
-            type="text"
-            placeholder="Time (HH:MM AM/PM)"
-            value={time}
-            onChange={handleTimeChange}
-            className="w-full p-3 rounded-lg bg-white/80 text-black"
-          />
-
-          {/* END TIME DISPLAY */}
-          <p className="text-lg font-semibold text-green-300">
-            End Time: {endTime || "---"}
-          </p>
-
-          <button className="w-full py-3 bg-gradient-to-r from-pink-500 to-indigo-500 rounded-xl shadow-lg text-lg font-bold">
-            Create Test
+          <button className="w-full py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl font-bold">
+            Add to Staging
           </button>
         </form>
-
-        {message && (
-          <p className="text-center mt-4 font-bold text-yellow-300">{message}</p>
-        )}
       </motion.div>
+
+      {/* ---------------- STAGED ---------------- */}
+      <div className="max-w-5xl mx-auto mt-14">
+        <h2 className="text-3xl font-bold text-indigo-700 mb-6 text-center">
+          🧪 Staged Questions
+        </h2>
+
+        {staged.length === 0 ? (
+          <p className="text-center text-gray-500">
+            No staged questions yet.
+          </p>
+        ) : (
+          <>
+            {staged.map((q, idx) => (
+              <div
+                key={q.id}
+                className="bg-white p-6 rounded-xl shadow mb-4"
+              >
+                <p className="font-semibold">
+                  Q{idx + 1}. {q.text}
+                </p>
+                <ul className="ml-4 mt-2 text-sm">
+                  {q.options.map((o, i) => (
+                    <li key={i}>
+                      {String.fromCharCode(65 + i)}. {o.text}{" "}
+                      {o.isCorrect && "✔"}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-sm mt-2">
+                  Marks: {q.marks} | Negative: {q.negativeMarks}
+                </p>
+              </div>
+            ))}
+
+            <button
+              onClick={saveAllToDatabase}
+              className="w-full py-4 bg-emerald-500 text-white rounded-xl font-bold shadow-lg mt-6"
+            >
+              💾 Save All Questions to Database
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* ---------------- SAVED ---------------- */}
+      <div className="max-w-5xl mx-auto mt-20">
+        <h2 className="text-3xl font-bold text-purple-700 mb-6 text-center">
+          📚 Saved Questions
+        </h2>
+
+        {savedQuestions.length === 0 ? (
+          <p className="text-center text-gray-500">
+            No questions saved yet.
+          </p>
+        ) : (
+          savedQuestions.map((q, i) => (
+            <div key={q._id} className="bg-white p-6 rounded-xl shadow mb-4">
+              <p className="font-semibold">
+                Q{i + 1}. {q.text}
+              </p>
+            </div>
+          ))
+        )}
+      </div>
+
+      {message && (
+        <p className="text-center mt-10 text-indigo-600 font-semibold">
+          {message}
+        </p>
+      )}
     </div>
   );
 }

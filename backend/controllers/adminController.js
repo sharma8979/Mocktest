@@ -284,8 +284,16 @@ export const uploadQuestions = async (req, res) => {
 export const getAllTests = async (req, res) => {
   try {
     const tests = await Test.find();
-    res.json({ tests });
+
+    // ✅ COUNT REGISTERED USERS (approved + pending + rejected if you want)
+    const totalUsers = await User.countDocuments();
+
+    res.json({
+      tests,
+      totalUsers, // 👈 SEND COUNT HERE
+    });
   } catch (err) {
+    console.error("Admin getAllTests error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -350,24 +358,21 @@ export const uploadPdfQuestions = async (req, res) => {
   }
 };
 
+/* ================= USER COUNT ================= */
 export const getUserCount = async (req, res) => {
   try {
-    const count = await User.countDocuments({ role: "user", status: "approved" });
-    console.log("User count:", count);
+    
+    const count = await User.countDocuments({ status: "approved" });
+
+
     res.json({ count });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
+  } catch (error) {
+    console.error("User count error:", error);
+    res.status(500).json({ message: "Failed to fetch user count" });
   }
 };
 
-export const getAttemptCount = async (req, res) => {
-  try {
-    const count = await Attempt.countDocuments();
-    res.json({ count });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-};
+
 
 
 

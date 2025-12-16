@@ -1,136 +1,165 @@
-import React from "react";
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../utils/api.js";
 import { motion } from "framer-motion";
-import { useAuth } from "../context/AuthContext.jsx"; // optional — uses auth context if present
 
-export default function Leaderboard() {
-  const { id: testId } = useParams();
-  const [leaderboard, setLeaderboard] = useState([]);
+export default function CreateTest() {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [duration, setDuration] = useState(30);
+  const [published, setPublished] = useState(false);
+  const [startTime, setStartTime] = useState("");
+  const [message, setMessage] = useState("");
+
   const navigate = useNavigate();
-  const auth = useAuth?.() ?? null; // safe if useAuth exists
 
-  useEffect(() => {
-    const fetchLeaderboard = async () => {
-      try {
-        const { data } = await API.get(`/attempts/leaderboard/${testId}`);
-        setLeaderboard(data.leaderboard || []);
-      } catch (err) {
-        console.error("Error fetching leaderboard:", err);
-        setLeaderboard([]); // ensure it's an array on error
-      }
-    };
-    fetchLeaderboard();
-  }, [testId]);
+  /* ------------------ SUBMIT ------------------ */
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  // decide where to go on "Back"
-  const handleBack = () => {
-    // prefer auth context if available
-    const userFromContext = auth?.user;
-    if (userFromContext?.role === "admin") {
-      navigate("/admin");
-      return;
-    }
-
-    // fallback to localStorage
     try {
-      const stored = JSON.parse(localStorage.getItem("user"));
-      if (stored?.role === "admin") {
-        navigate("/admin");
+      if (!startTime) {
+        alert("⚠️ Please select a start time");
         return;
       }
-    } catch (e) {
-      // ignore parse errors
-    }
 
-    // default for normal users / unknown
-    navigate("/");
+      const start = new Date(startTime + ":00");
+      const now = new Date();
+
+      if (start <= now) {
+        alert("⚠️ Start time must be in the future!");
+        return;
+      }
+
+      const { data } = await API.post("/admin/tests", {
+        title,
+        description,
+        duration,
+        published,
+        startTime: start.toISOString(),
+      });
+
+      setMessage("✅ Test created successfully!");
+
+      setTimeout(() => {
+        navigate(`/admin/add-question/${data.test._id}`);
+      }, 1200);
+
+    } catch (err) {
+      console.error(err);
+      setMessage("❌ Failed to create test");
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-8 text-white relative">
-      {/* Title */}
-      <motion.h2
-        initial={{ opacity: 0, y: -30 }}
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-indigo-900 to-purple-900 text-white flex items-center justify-center px-6 relative overflow-hidden">
+
+      {/* 🔙 BACK TO DASHBOARD */}
+      <button
+        onClick={() => navigate("/admin")}
+        className="absolute top-6 left-6 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-lg border border-white/30 shadow-lg transition font-medium"
+      >
+        ⬅ Back to Dashboard
+      </button>
+
+      {/* 🌈 BACKGROUND EFFECTS */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.25 }}
+        transition={{ duration: 1 }}
+        className="absolute w-[500px] h-[500px] bg-pink-500 rounded-full blur-3xl top-10 left-10 opacity-10"
+      />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.25 }}
+        transition={{ duration: 1 }}
+        className="absolute w-[600px] h-[600px] bg-indigo-500 rounded-full blur-3xl bottom-10 right-10 opacity-10"
+      />
+
+      {/* 🧊 FORM CARD */}
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="text-center text-5xl font-extrabold drop-shadow-lg mb-10"
+        className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl shadow-2xl p-10 w-full max-w-lg text-center"
       >
-        🏆 Leaderboard
-      </motion.h2>
+        <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-indigo-400 to-pink-400 bg-clip-text text-transparent">
+          🧾 Create New Test
+        </h2>
 
-      {/* If no data */}
-      {leaderboard.length === 0 ? (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center text-xl font-medium text-white/80 mt-8"
-        >
-          No submissions yet for this test.
-        </motion.p>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="overflow-x-auto max-w-4xl mx-auto backdrop-blur-xl bg-white/20 shadow-xl border border-white/30 rounded-2xl"
-        >
-          <table className="w-full text-white">
-            <thead>
-              <tr className="bg-white/20">
-                <th className="py-4 px-6 text-left font-semibold">Rank</th>
-                <th className="py-4 px-6 text-left font-semibold">Name</th>
-                <th className="py-4 px-6 text-left font-semibold">Score</th>
-                <th className="py-4 px-6 text-left font-semibold">Finished</th>
-              </tr>
-            </thead>
+        <form onSubmit={handleSubmit} className="space-y-6">
 
-            <tbody>
-              {leaderboard.map((user, index) => (
-                <motion.tr
-                  key={user.rank ?? index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="hover:bg-white/10 transition"
-                >
-                  <td className="py-4 px-6 font-bold text-lg">{user.rank}</td>
-                  <td className="py-4 px-6">{user.name}</td>
-                  <td className="py-4 px-6 font-semibold">{user.totalMarks}</td>
-                  <td className="py-4 px-6">
-                    {new Date(user.finishedAt).toLocaleString("en-IN")}
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        </motion.div>
-      )}
+          {/* TITLE */}
+          <input
+            type="text"
+            placeholder="Test Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+            className="w-full px-4 py-3 rounded-xl bg-white/80 text-gray-800 shadow-inner focus:ring-4 focus:ring-indigo-300 outline-none"
+          />
 
-      {/* Back Button — ALWAYS rendered and centered */}
-      <div className="mt-12 flex justify-center">
-        <motion.button
-          whileHover={{ scale: 1.05, boxShadow: "0px 0px 20px rgba(255,255,255,0.4)" }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleBack}
-          className="px-6 py-3 bg-white/20 text-white rounded-xl font-semibold shadow-xl backdrop-blur-lg hover:bg-white/30 transition"
-        >
-          ⬅ Back to Dashboard
-        </motion.button>
-      </div>
+          {/* DESCRIPTION */}
+          <textarea
+            placeholder="Description (optional)"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows="3"
+            className="w-full px-4 py-3 rounded-xl bg-white/80 text-gray-800 shadow-inner focus:ring-4 focus:ring-indigo-300 outline-none"
+          />
 
-      {/* Decorative glowing circles */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.15 }}
-        className="absolute top-10 left-10 w-[400px] h-[400px] rounded-full bg-white blur-3xl"
-      />
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.15 }}
-        className="absolute bottom-10 right-10 w-[450px] h-[450px] rounded-full bg-pink-400 blur-3xl"
-      />
+          {/* DURATION */}
+          <input
+            type="number"
+            placeholder="Duration (minutes)"
+            value={duration}
+            onChange={(e) => setDuration(Number(e.target.value))}
+            required
+            min="1"
+            className="w-full px-4 py-3 rounded-xl bg-white/80 text-gray-800 shadow-inner focus:ring-4 focus:ring-indigo-300 outline-none"
+          />
+
+          {/* START TIME */}
+          <label className="block text-left text-sm font-semibold text-white/80">
+            Start Time:
+            <input
+              type="datetime-local"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              required
+              className="w-full mt-2 px-4 py-3 rounded-xl bg-white/80 text-gray-800 shadow-inner focus:ring-4 focus:ring-indigo-300 outline-none"
+            />
+          </label>
+
+          {/* PUBLISH */}
+          <div className="flex items-center gap-2 text-white/90">
+            <input
+              type="checkbox"
+              checked={published}
+              onChange={() => setPublished(!published)}
+              className="w-4 h-4 accent-pink-500"
+            />
+            <span>Publish immediately</span>
+          </div>
+
+          {/* SUBMIT */}
+          <motion.button
+            type="submit"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="w-full py-3 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 rounded-xl font-semibold shadow-lg"
+          >
+            Create Test
+          </motion.button>
+        </form>
+
+        {/* MESSAGE */}
+        {message && (
+          <p className={`mt-5 font-semibold ${message.includes("✅") ? "text-green-400" : "text-red-400"}`}>
+            {message}
+          </p>
+        )}
+      </motion.div>
     </div>
   );
 }

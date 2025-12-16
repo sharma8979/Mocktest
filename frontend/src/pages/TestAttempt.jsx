@@ -6,10 +6,6 @@ import { motion } from "framer-motion";
 
 console.log("TestAttempt loaded");
 
-
-
-
-
 export default function TestAttempt() {
   const { id: testId } = useParams();
   const navigate = useNavigate();

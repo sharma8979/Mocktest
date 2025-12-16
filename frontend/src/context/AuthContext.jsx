@@ -1,6 +1,4 @@
-import React from "react";
-import { createContext, useContext, useState, useEffect } from "react";
-
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 const AuthContext = createContext();
 
@@ -8,19 +6,16 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem("token"));
 
+  // ✅ RESTORE USER ON REFRESH
   useEffect(() => {
-  const token = localStorage.getItem("token");
+    const savedUser = localStorage.getItem("user");
+    const savedToken = localStorage.getItem("token");
 
-  if (token) {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    const now = Date.now() / 1000;
-
-    if (payload.exp < now) {
-      logout(); // clear token
+    if (savedUser && savedToken) {
+      setUser(JSON.parse(savedUser));
+      setToken(savedToken);
     }
-  }
-}, []);
-
+  }, []);
 
   const login = (userData, token) => {
     setUser(userData);

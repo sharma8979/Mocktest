@@ -2,7 +2,7 @@ import express from "express";
 import multer from "multer";
 import { protect } from "../middleware/authMiddleware.js";
 import { adminOnly } from "../middleware/roleMiddleware.js";
-import { getUserCount, getAttemptCount } from "../controllers/adminController.js";
+import { getUserCount } from "../controllers/adminController.js";
 
 
 import {
@@ -71,7 +71,7 @@ router.put("/reject-user/:id", protect, adminOnly, rejectUser);
 
 
 router.get("/user-count", protect, adminOnly, getUserCount);
-router.get("/attempt-count", protect, adminOnly, getAttemptCount);
+
 
 
 export default router;
