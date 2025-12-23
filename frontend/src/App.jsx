@@ -104,13 +104,13 @@ export default function App() {
           }
         />
 
-        <Route
-          path="/leaderboard/:id"
-          element={
-            <PrivateRoute>
-              <Leaderboard />
-            </PrivateRoute>
-          }
+       <Route
+  path="/leaderboard/:id"
+  element={
+    <PrivateRoute >
+      <Leaderboard />
+    </PrivateRoute>
+  }
         />
 
       </Routes>
